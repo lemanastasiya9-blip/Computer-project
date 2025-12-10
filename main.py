@@ -43,22 +43,22 @@ def choose_edge(curent_edge:int, visited_edge, graph:dict,\
     summary=0
     for i in result:
         summary+=i[1]
-    rand = random.randint(0,int(summary))
+    random_sum = random.random()*summary
     s=0
     for i,j in result:
         s+=j
-        if j>=rand:
+        if j>=random_sum:
             return i
     return result[-1][0]
-def cycle(start,graph,pheromones_graph,alpha,beta):
+def cycle(start:int,graph:dict,pheromones_graph:dict,alpha:int,beta:int)->list:
     """
-    Docstring for cycle
-    
-    :param start: Description
-    :param graph: Description
-    :param pheromones_graph: Description
-    :param alpha: Description
-    :param beta: Description
+    Find cycle 
+    :param start: start node
+    :param graph: graph
+    :param pheromones_graph: pheronomes on edges
+    :param alpha: coefficient
+    :param beta: coefficient
+    :return list of path
     """
     visits={start}
     path=[start]
@@ -72,25 +72,43 @@ def cycle(start,graph,pheromones_graph,alpha,beta):
         path.append(next_edge)
     path.append(start)
     return path
-def ant_algorithm(graph:dict, n:int, alpha=1, beta=2) -> list:
+def ant_algorithm(graph:dict, n:int, alpha=0.7, beta=0.3, evaporation=0.5) -> list:
     """
     Write path to ant using ant_algorithm
     :param lst: graph with weights
     :param n: amount of ants
     :return: list of paths to each ant
     """
-    pheromones_graph=pheromones(graph)
-    lst=list(graph.keys())
-    cycle_list=[]
-    start=random.choice(lst)
-    cycle_list.append(start)
-    for i in range(n):
-        cycl=cycle(start,graph,pheromones_graph,alpha,beta)
-        cycle_list.append(cycl)
-    return cycle_list
+    pheromones_graph = pheromones(graph)
+    lst = list(graph.keys())
+    best_path = None
+    best_length = float('inf')
+    start = random.choice(lst)
+    cycle_list = [start]
+    for _ in range(n):
+        cycl = cycle(start, graph, pheromones_graph, alpha, beta)
+        if cycl is not None:
+            cycle_list.append(cycl)
+            length = sum(next(w for v,w in graph[cycl[i]] if v==cycl[i+1])\
+                          for i in range(len(cycl)-1))
+            if length < best_length:
+                best_length = length
+                best_path = cycl
+        for edge in pheromones_graph:
+            pheromones_graph[edge] *= (1 - evaporation)
+        if best_path:
+            for i in range(len(best_path)-1):
+                edge = tuple(sorted((best_path[i], best_path[i+1])))
+                pheromones_graph[edge] += 1.0 / best_length
+    return [cycle_list, f'Hamiltonian cycle:{cycle_list[-1]}']
 if __name__=='__main__':
     import doctest
     doctest.testmod()
-    print(ant_algorithm({0: [(1, 1), (2, 1), (3, 1), (4, 1)],\
-1: [(0, 1), (2, 1), (3, 1), (4, 1)],2: [(0, 1), (1, 1), (3, 1), (4, 1)],\
-3: [(0, 1), (1, 1), (2, 1), (4, 1)],4: [(0, 1), (1, 1), (2, 1), (3, 1)]},30))
+    print(ant_algorithm({
+    0: [(1, 1), (2, 4)],
+    1: [(0, 1), (3, 5), (4, 1)],
+    2: [(0, 4), (3, 1)],
+    3: [(2, 1), (1, 5), (5, 1)],
+    4: [(1, 1), (5, 1)],
+    5: [(3, 1), (4, 1)]
+},30))
