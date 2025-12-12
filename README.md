@@ -54,6 +54,6 @@ The algorithm returns:
 #### Sofiia Tsiuk
 * visualization
 #### Polina Zuzuk
-* presentation and documentation 
+* presentation, documentation and arragement of github
 
 
