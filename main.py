@@ -4,6 +4,26 @@ import argparse
 import networkx as nx
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+def read_graph(filepath:str)->dict:
+    """
+    Reads an undirected graph from a file.
+
+Parameters:
+    filepath (str): path to the file (the first column contains the first vertex of the edge,
+                    the second column — the second vertex, 
+                    the third column — the weight of the edge)
+
+Returns:
+    dict: {vertex: [(neighbor_vertex, weight)]}
+    """
+    relation = {}
+    with open(filepath, 'r', encoding='utf-8') as file1:
+        for line in file1:
+            if line:
+                line = line.strip().split(',')
+                relation.setdefault(int(line[1]), []).append((int(line[0]),float(line[2])))
+                relation.setdefault(int(line[0]), []).append((int(line[1]),float(line[2])))
+    return relation
 def pheromones(graph: dict) -> dict:
     """Initialize pheromones on edges"""
     result = {}
@@ -260,3 +280,4 @@ def main():
         )
 if __name__ == "__main__":
     main()
+
