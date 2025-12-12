@@ -241,6 +241,7 @@ def visualize_ant_algorithm(graph, steps=15, alpha=0.7, beta=0.3, evaporation=0.
     plt.tight_layout()
     plt.show()
 def main():
+    parser = argparse.ArgumentParser(description="Ant algorithm CLI tool")
     parser.add_argument(
     "--path",
     type=str,
@@ -258,7 +259,6 @@ def main():
     },
     help="Шлях до файлу з графом (JSON)."
 )
-    parser = argparse.ArgumentParser(description="Ant algorithm CLI tool")
     parser.add_argument("--ants", type=int, default=30,
                         help="Кількість мурах (ітерацій)")
     parser.add_argument("--alpha", type=float, default=0.7,
@@ -297,3 +297,4 @@ def main():
         )
 if __name__ == "__main__":
     main()
+
