@@ -1,74 +1,56 @@
-"""Module ant algorithm"""
+"""Module ant algorithm - Drawing effect like pen on paper"""
 import random
-def pheromones(graph:dict) -> dict:
-    """
-    pheromones on edge
-    :param graph: graph with edge
-    :return: dictionar with pheromons on edge
-    >>> pheromones({0: [(1,10), (2,20)], 1: [(0,10), (2,30)], 2: [(0,20), (1,30)]})
-    {(0, 1): 1.0, (0, 2): 1.0, (1, 2): 1.0}
-    """
+import argparse
+import networkx as nx
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+def pheromones(graph: dict) -> dict:
+    """Initialize pheromones on edges"""
     result = {}
-    keys = graph.keys()
-    for i in keys:
-        for j in graph[i]:
-            x = (i, j[0])
-            edge = tuple(sorted(x))
+    for node in graph.keys():
+        for neighbor, weight in graph[node]:
+            edge = tuple(sorted((node, neighbor)))
             if edge not in result:
-                result[edge] = 1.0
+                result[edge] = 0.0
+    print(f"Initialized {len(result)} edges with pheromones:")
+    for edge in sorted(result.keys()):
+        print(f"  {edge}")
     return result
-def choose_edge(curent_edge:int, visited_edge, graph:dict,\
-    alpha:int, beta:int, pheromones_graph:dict) -> int:
-    """
-    Find next edge to visit
-    :param curent_edge: edge in which we are now
-    :param visited_edge: edges in which we were already
-    :param graph: graph with edge
-    :param alpha, beta coefficients 
-    :param pheromones_graph: dict with pheromons
-    :return: next edge to go
-    """
-    result=[]
-    for i,j in graph[curent_edge]:
+def choose_edge(current_edge: int, visited_edge, graph: dict,
+                alpha: float, beta: float, pheromones_graph: dict) -> int:
+    """Find next edge to visit"""
+    result = []
+    for i, j in graph[current_edge]:
         if i not in visited_edge:
-            if (curent_edge,i) in pheromones_graph:
-                x=pheromones_graph[(curent_edge,i)]
+            if (current_edge, i) in pheromones_graph:
+                x = pheromones_graph[(current_edge, i)] + 0.1
             else:
-                x=pheromones_graph[(i,curent_edge)]
-            y=1/j
-            probability=(x**alpha) * (y**beta)
-            result.append((i,probability))
+                x = pheromones_graph[(i, current_edge)] + 0.1
+            y = 1 / j
+            probability = (x ** alpha) * (y ** beta)
+            result.append((i, probability))
     if not result:
         return None
-    summary=0
-    for i in result:
-        summary+=i[1]
-    random_sum = random.random()*summary
-    s=0
-    for i,j in result:
-        s+=j
-        if j>=random_sum:
+    summary = sum(i[1] for i in result)
+    random_sum = random.random() * summary
+    s = 0
+    for i, j in result:
+        s += j
+        if s >= random_sum:
             return i
     return result[-1][0]
-def cycle(start:int,graph:dict,pheromones_graph:dict,alpha:int,beta:int)->list:
-    """
-    Find cycle 
-    :param start: start node
-    :param graph: graph
-    :param pheromones_graph: pheronomes on edges
-    :param alpha: coefficient
-    :param beta: coefficient
-    :return list of path
-    """
-    visits={start}
-    path=[start]
-    curent_edge=start
-    while len(path)!=len(graph):
-        next_edge=choose_edge(curent_edge,visits,graph,alpha,beta,pheromones_graph)
+def cycle(start: int, graph: dict, pheromones_graph: dict,
+          alpha: float, beta: float) -> list:
+    """Find cycle"""
+    visits = {start}
+    path = [start]
+    current_edge = start
+    while len(path) != len(graph):
+        next_edge = choose_edge(current_edge, visits, graph, alpha, beta, pheromones_graph)
         if next_edge is None:
             return None
         visits.add(next_edge)
-        curent_edge=next_edge
+        current_edge = next_edge
         path.append(next_edge)
     path.append(start)
     return path
@@ -78,10 +60,10 @@ def get_weight(graph, u, v):
         if to == v:
             return w
     return float('inf')
-def ant_algorithm(graph:dict, n:int, alpha=0.7, beta=0.3, evaporation=0.5) -> list:
+def ant_algorithm(graph: dict, n: int, alpha=0.7, beta=0.3, evaporation=0.5) -> list:
     """
     Write path to ant using ant_algorithm
-    :param lst: graph with weights
+    :param graph: graph with weights
     :param n: amount of ants
     :return: list of paths to each ant
     """
@@ -91,12 +73,22 @@ def ant_algorithm(graph:dict, n:int, alpha=0.7, beta=0.3, evaporation=0.5) -> li
     best_length = float('inf')
     start = random.choice(lst)
     cycle_list = [start]
-    for _ in range(n):
+    pheromone_history = []
+    ant_paths_history = []
+    for iteration in range(n):
         cycl = cycle(start, graph, pheromones_graph, alpha, beta)
         if cycl is not None:
             cycle_list.append(cycl)
-            length = sum(next(w for v,w in graph[cycl[i]] if v==cycl[i+1])\
-                          for i in range(len(cycl)-1))
+            length = 0
+            valid = True
+            for i in range(len(cycl) - 1):
+                w = next((w for v, w in graph[cycl[i]] if v == cycl[i+1]), None)
+                if w is None:
+                    valid = False
+                    break
+                length += w
+            if not valid:
+                continue
             if length < best_length:
                 best_length = length
                 best_path = cycl
@@ -106,7 +98,71 @@ def ant_algorithm(graph:dict, n:int, alpha=0.7, beta=0.3, evaporation=0.5) -> li
             for i in range(len(best_path)-1):
                 edge = tuple(sorted((best_path[i], best_path[i+1])))
                 pheromones_graph[edge] += 1.0 / best_length
-    return [cycle_list, f'Hamiltonian cycle:{cycle_list[-1]}']
+        pheromone_history.append(pheromones_graph.copy())
+        if cycl:
+            ant_paths_history.append(cycl)
+    return pheromone_history, ant_paths_history, [cycle_list, f'Hamiltonian cycle:{cycle_list[-1]}']
+
+def ant_algorithm_step_by_step(graph: dict, n: int, alpha=0.7, beta=0.3,
+                                evaporation=0.5):
+    """
+    Ant algorithm that records each step of each ant
+    Returns detailed animation frames
+    """
+    pheromones_graph = pheromones(graph)
+    lst = list(graph.keys())
+    best_path = None
+    best_length = float('inf')
+    animation_frames = []
+    animation_frames.append({
+        'pheromones': pheromones_graph.copy(),
+        'current_ant_position': None,
+        'current_path': []
+    })
+    for iteration in range(n):
+        start = random.choice(lst)
+        visits = {start}
+        path = [start]
+        current_edge = start
+        while len(path) != len(graph):
+            next_edge = choose_edge(current_edge, visits, graph, alpha, beta, pheromones_graph)
+            if next_edge is None:
+                break
+            visits.add(next_edge)
+            path.append(next_edge)
+            edge = tuple(sorted((current_edge, next_edge)))
+            if edge in pheromones_graph:
+                pheromones_graph[edge] += 10.0
+            else:
+                print(f"WARNING: Edge {edge} not found in pheromones!")
+                pheromones_graph[edge] = 10.0
+            animation_frames.append({
+                'pheromones': pheromones_graph.copy(),
+                'current_ant_position': next_edge,
+                'current_path': path.copy()
+            })
+            current_edge = next_edge
+        if len(path) == len(graph):
+            path.append(start)
+            edge = tuple(sorted((path[-2], start)))
+            if edge in pheromones_graph:
+                pheromones_graph[edge] += 10.0
+            animation_frames.append({
+                'pheromones': pheromones_graph.copy(),
+                'current_ant_position': start,
+                'current_path': path.copy()
+            })
+            length = 0
+            for i in range(len(path) - 1):
+                w = next((w for v, w in graph[path[i]] if v == path[i+1]), None)
+                if w is not None:
+                    length += w
+            if length < best_length:
+                best_length = length
+                best_path = path
+        for edge in pheromones_graph:
+            pheromones_graph[edge] *= (1 - evaporation)
+    return animation_frames
 def visualize_ant_algorithm(graph, steps=15, alpha=0.7, beta=0.3, evaporation=0.5):
     """Visualize ants drawing the graph step by step"""
     frames = ant_algorithm_step_by_step(graph, steps, alpha, beta, evaporation)
@@ -202,7 +258,5 @@ def main():
             beta=0.3,
             evaporation=0.5
         )
-if __name__=='__main__':
-    import doctest
-    doctest.testmod()
+if __name__ == "__main__":
     main()
