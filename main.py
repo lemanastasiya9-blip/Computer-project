@@ -241,6 +241,23 @@ def visualize_ant_algorithm(graph, steps=15, alpha=0.7, beta=0.3, evaporation=0.
     plt.tight_layout()
     plt.show()
 def main():
+    parser.add_argument(
+    "--path",
+    type=str,
+    default={
+        0: [(1,3), (9,3), (2,6), (4,9), (6,2)],
+        1: [(0,3), (2,3), (3,7), (7,9)],
+        2: [(1,3), (3,3), (0,6), (5,5), (8,2)],
+        3: [(2,3), (4,4), (1,7), (6,6)],
+        4: [(3,4), (5,3), (0,9), (7,5)],
+        5: [(4,3), (6,3), (2,5), (8,6)],
+        6: [(5,3), (7,4), (0,2), (3,6)],
+        7: [(6,4), (8,3), (4,5), (1,9)],
+        8: [(7,3), (9,3), (2,2), (5,6)],
+        9: [(8,3), (0,3), (3,8)]
+    },
+    help="Шлях до файлу з графом (JSON)."
+)
     parser = argparse.ArgumentParser(description="Ant algorithm CLI tool")
     parser.add_argument("--ants", type=int, default=30,
                         help="Кількість мурах (ітерацій)")
@@ -280,4 +297,3 @@ def main():
         )
 if __name__ == "__main__":
     main()
-
